@@ -4,7 +4,7 @@ import { fetchNoticeById } from '@/services/api';
 import { ApiError, Notice } from '@/types/notice';
 import { storeReadId } from '@/utils/storage';
 
-export function useNotice(id?: string) {
+export function useNoticeDetail(id?: string) {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

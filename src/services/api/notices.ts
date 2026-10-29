@@ -20,17 +20,15 @@ export async function fetchNotices(params?: GetNoticesParams): Promise<Paginated
       result = result.filter((n) => n.department === params.department);
     }
 
+    result.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+
     const page = params?.page ?? 1;
     const limit = params?.limit ?? DEFAULT_PAGE_LIMIT;
     const startIndex = (page - 1) * limit;
     const paginatedItems = result.slice(startIndex, startIndex + limit);
     const hasMore = startIndex + limit < result.length;
 
-    return {
-      notices: paginatedItems,
-      hasMore,
-      total: result.length,
-    };
+    return { notices: paginatedItems, hasMore };
   });
 }
 

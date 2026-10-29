@@ -23,7 +23,6 @@ export interface GetNoticesParams {
   category?: NoticeCategory;
   priority?: NoticePriority;
   department?: NoticeDepartment;
-  search?: string;
   page?: number;
   limit?: number;
 }
@@ -31,7 +30,6 @@ export interface GetNoticesParams {
 export interface PaginatedNotices {
   notices: Notice[];
   hasMore: boolean;
-  total: number;
 }
 
 export interface ApiError {

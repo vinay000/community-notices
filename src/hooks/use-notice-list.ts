@@ -4,7 +4,7 @@ import { fetchNotices } from '@/services/api';
 import { ApiError, GetNoticesParams, Notice } from '@/types/notice';
 import { getStoredReadIds, storeReadId } from '@/utils/storage';
 
-export function useNotices(params?: GetNoticesParams) {
+export function useNoticeList(params?: GetNoticesParams) {
   const { category, priority, department, limit } = params ?? {};
 
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -15,11 +15,15 @@ export function useNotices(params?: GetNoticesParams) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paginationError, setPaginationError] = useState<string | null>(null);
+  const [isStale, setIsStale] = useState(false);
 
   const fetchPage = useCallback(
     async (pageNumber: number) => {
       const [response, readIds] = await Promise.all([
-        fetchNotices({ category, priority, department, limit, page: pageNumber, }), getStoredReadIds(),]);
+        fetchNotices({ category, priority, department, limit, page: pageNumber }),
+        getStoredReadIds(),
+      ]);
       const readSet = new Set(readIds);
 
       return {
@@ -33,28 +37,39 @@ export function useNotices(params?: GetNoticesParams) {
     [category, priority, department, limit]
   );
 
-  const refetch = useCallback(async (refresh = false) => {
-    if (refresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
+  const refetch = useCallback(
+    async (refresh = false) => {
+      if (refresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
 
-    setError(null);
+      setError(null);
+      setPaginationError(null);
 
-    try {
-      const result = await fetchPage(1);
+      try {
+        const result = await fetchPage(1);
 
-      setNotices(result.notices);
-      setHasMore(result.hasMore);
-      setPage(1);
-    } catch (err) {
-      setError((err as ApiError).message);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  },
+        setNotices(result.notices);
+        setHasMore(result.hasMore);
+        setPage(1);
+        setIsStale(false);
+        setError(null);
+      } catch (err) {
+        const message = (err as ApiError).message;
+        setError(message);
+        setNotices((prev) => {
+          if (prev.length > 0) {
+            setIsStale(true);
+          }
+          return prev;
+        });
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
     [fetchPage]
   );
 
@@ -64,6 +79,7 @@ export function useNotices(params?: GetNoticesParams) {
     }
 
     setIsLoadingMore(true);
+    setPaginationError(null);
 
     try {
       const nextPage = page + 1;
@@ -73,7 +89,7 @@ export function useNotices(params?: GetNoticesParams) {
       setHasMore(result.hasMore);
       setPage(nextPage);
     } catch (err) {
-      setError((err as ApiError).message);
+      setPaginationError((err as ApiError).message);
     } finally {
       setIsLoadingMore(false);
     }
@@ -85,6 +101,8 @@ export function useNotices(params?: GetNoticesParams) {
     const load = async () => {
       setIsLoading(true);
       setError(null);
+      setPaginationError(null);
+      setIsStale(false);
 
       try {
         const result = await fetchPage(1);
@@ -93,10 +111,14 @@ export function useNotices(params?: GetNoticesParams) {
           setNotices(result.notices);
           setHasMore(result.hasMore);
           setPage(1);
+          setIsStale(false);
+          setError(null);
         }
       } catch (err) {
         if (!cancelled) {
           setError((err as ApiError).message);
+          setNotices([]);
+          setIsStale(false);
         }
       } finally {
         if (!cancelled) {
@@ -131,6 +153,8 @@ export function useNotices(params?: GetNoticesParams) {
     isLoadingMore,
     hasMore,
     error,
+    paginationError,
+    isStale,
     isEmpty,
     refetch,
     loadMore,

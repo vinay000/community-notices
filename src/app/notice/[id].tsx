@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
@@ -10,17 +11,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Badge } from '@/components/badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useNotice } from '@/hooks/use-notice';
+import { useNoticeDetail } from '@/hooks/use-notice-detail';
 import { useTheme } from '@/hooks/use-theme';
 import { theme } from '@/theme';
-import { formatDate } from '@/utils/date';
+import { formatDate, isExpired } from '@/utils/date';
 
 export default function NoticeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useTheme();
-  const { notice, isLoading, error, refetch } = useNotice(id);
+  const { notice, isLoading, error, refetch } = useNoticeDetail(id);
+  const [imageError, setImageError] = useState(false);
+
+  const isHighPriority = notice?.priority === 'high';
+  const expired = isExpired(notice?.expires_at ?? null);
 
   return (
     <ThemedView style={styles.container}>
@@ -65,15 +71,28 @@ export default function NoticeDetailScreen() {
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}>
+            <View style={styles.metaRow}>
+              <Badge label={notice.department} variant="primary" size="md" />
+              {isHighPriority && <Badge label="High Priority" variant="error" size="md" />}
+              {expired && <Badge label="Expired" variant="default" size="md" />}
+            </View>
+
             <ThemedText type="heading" style={styles.title}>
               {notice.title}
             </ThemedText>
 
-            <ThemedText style={styles.date} themeColor="textSecondary">
-              {formatDate(notice.published_at)}
-            </ThemedText>
+            <View style={styles.dateRow}>
+              <ThemedText style={styles.date} themeColor="textSecondary">
+                Published {formatDate(notice.published_at)}
+              </ThemedText>
+              {notice.expires_at && (
+                <ThemedText style={styles.date} themeColor="textSecondary">
+                  • Expires {formatDate(notice.expires_at)}
+                </ThemedText>
+              )}
+            </View>
 
-            {notice.image_url ? (
+            {notice.image_url && !imageError ? (
               <Image
                 source={{ uri: notice.image_url }}
                 style={[
@@ -82,12 +101,21 @@ export default function NoticeDetailScreen() {
                 ]}
                 contentFit="cover"
                 transition={200}
+                onError={() => setImageError(true)}
               />
             ) : null}
 
-            <ThemedText style={styles.description}>
-              {notice.body}
-            </ThemedText>
+            {notice.body.trim().length > 0 ? (
+              <ThemedText style={styles.description}>
+                {notice.body}
+              </ThemedText>
+            ) : (
+              <ThemedText
+                style={[styles.description, styles.emptyBody]}
+                themeColor="textSecondary">
+                No additional details provided for this notice.
+              </ThemedText>
+            )}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -155,4 +183,22 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.7,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: theme.spacing.xs,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: theme.spacing.xs,
+    marginTop: -theme.spacing.xs,
+  },
+  emptyBody: {
+    fontStyle: 'italic',
+    opacity: 0.8,
+  },
 });
+

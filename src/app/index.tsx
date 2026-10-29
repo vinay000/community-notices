@@ -14,7 +14,7 @@ import { CategoryFilter } from '@/components/category-filter';
 import { Notice } from '@/components/notice';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { useNotices } from '@/hooks/use-notices';
+import { useNoticeList } from '@/hooks/use-notice-list';
 import { useTheme } from '@/hooks/use-theme';
 import { theme } from '@/theme';
 import { Notice as NoticeType, NoticeCategory } from '@/types/notice';
@@ -22,17 +22,22 @@ import { Notice as NoticeType, NoticeCategory } from '@/types/notice';
 export default function HomeScreen() {
   const colors = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<NoticeCategory | undefined>(undefined);
+
+
   const {
     notices,
     isLoading,
     isRefreshing,
     isLoadingMore,
     error,
+    paginationError,
+    isStale,
     isEmpty,
     refetch,
     loadMore,
     markAsRead,
-  } = useNotices({ category: selectedCategory });
+  } = useNoticeList({ category: selectedCategory });
+
 
   const handlePressNotice = (notice: NoticeType) => {
     markAsRead(notice.id);
@@ -45,19 +50,30 @@ export default function HomeScreen() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <ThemedText type="subheading">Notices</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Community announcements and updates
-      </ThemedText>
+      <View style={styles.titleContainer}>
+        <ThemedText type="subheading">Notices</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          Community announcements and updates
+        </ThemedText>
+      </View>
+
       <CategoryFilter
         selected={selectedCategory}
         onSelect={setSelectedCategory}
       />
+
+      {isStale && (
+        <View style={[styles.staleBanner, { backgroundColor: colors.backgroundElement }]}>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.staleText}>
+            Showing cached notices. Connection failed.
+          </ThemedText>
+        </View>
+      )}
     </View>
   );
 
   const renderEmpty = () => {
-    if (isLoading) {
+    if (isLoading && notices.length === 0) {
       return (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -65,7 +81,7 @@ export default function HomeScreen() {
       );
     }
 
-    if (error) {
+    if (error && notices.length === 0) {
       return (
         <View style={styles.centerContainer}>
           <ThemedText themeColor="textSecondary" style={styles.errorText}>
@@ -95,22 +111,47 @@ export default function HomeScreen() {
     return null;
   };
 
+  const renderFooter = () => {
+    if (isLoadingMore) {
+      return (
+        <View style={styles.footerLoader}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+      );
+    }
+
+    if (paginationError) {
+      return (
+        <View style={styles.footerErrorContainer}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Could not load more notices
+          </ThemedText>
+          <Pressable
+            onPress={loadMore}
+            style={({ pressed }) => [
+              styles.footerRetryButton,
+              { backgroundColor: colors.backgroundElement },
+              pressed && styles.pressed,
+            ]}>
+            <ThemedText type="small">Retry</ThemedText>
+          </Pressable>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <FlatList
-          data={isLoading || error ? [] : notices}
+          data={isLoading && notices.length === 0 ? [] : notices}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmpty}
-          ListFooterComponent={
-            isLoadingMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={colors.primary} />
-              </View>
-            ) : undefined
-          }
+          ListFooterComponent={renderFooter}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           contentContainerStyle={styles.listContent}
@@ -141,6 +182,9 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
     gap: theme.spacing.sm,
   },
+  titleContainer: {
+    gap: 2,
+  },
   listContent: {
     paddingBottom: theme.spacing.xl,
     flexGrow: 1,
@@ -167,5 +211,24 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  staleBanner: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+    marginTop: theme.spacing.xs,
+  },
+  staleText: {
+    fontSize: theme.typography.sizes.xs,
+  },
+  footerErrorContainer: {
+    paddingVertical: theme.spacing.md,
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  footerRetryButton: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.full,
   },
 });

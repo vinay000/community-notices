@@ -6,3 +6,11 @@ export function formatDate(dateString: string): string {
     year: 'numeric',
   });
 }
+
+export function isExpired(expiresAt: string | null): boolean {
+  if (!expiresAt) {
+    return false;
+  }
+  const expTime = new Date(expiresAt).getTime();
+  return !Number.isNaN(expTime) && expTime < Date.now();
+}
