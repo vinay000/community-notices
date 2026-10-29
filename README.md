@@ -58,6 +58,5 @@ npx expo start
 
 ## Future Improvements
 
-- **SQLite Database:** True offline-first caching for full offline access.
-- **Push Notifications:** Instant delivery for high-priority emergency alerts.
+- **Offline Caching:** True offline-first caching for full offline access and fallback data on failure.
 - **Search:** Instant client-side search across titles and departments.
