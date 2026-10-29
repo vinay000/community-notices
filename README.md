@@ -34,7 +34,7 @@ npx expo start
 - **Notice Detail:** View full notice with department, published date, image, and body content.
 - **Offline / Stale Banner:** If network fails, previously loaded notices stay on screen with an unobtrusive banner.
 - **Isolated Pagination Errors:** When loading more pages fails, an inline retry button appears without breaking the existing list.
-- **Mock API Layer:** Simulates 600ms latency and 1-in-5 failure rate using local `notices.json`.
+- **Mock API Layer:** Simulates 600ms latency and 1-in-5 failure rate using local `notices.json`, with `setMockFailuresEnabled` to turn failures off.
 
 ---
 
@@ -50,13 +50,24 @@ npx expo start
 ## Edge Cases Handled
 
 - **Long titles:** Clamped to 2 lines on list cards to maintain layout consistency.
-- **Missing images:** Fallback placeholder icon displays gracefully on image load error.
 - **Empty body text:** Shows friendly placeholder message instead of empty space.
+- **Missing images:** Fallback placeholder icon displays gracefully on image load error.
+- **Expired notices:** Marked with an "Expired" status badge on the detail screen to avoid confusion.
+- **Future published dates:** Sorted newest-first at the top of the feed with their scheduled date clearly shown.
 - **Network failure recovery:** Data is never wiped on error; pull-to-refresh recovers seamlessly.
 
 ---
 
-## Future Improvements
+## What to Add Before Shipping to Real Users
 
-- **Offline Caching:** True offline-first caching for full offline access and fallback data on failure.
-- **Search:** Instant client-side search across titles and departments.
+- **Testing:** Unit and hook tests using Jest + React Native Testing Library; E2E flow testing with Maestro.
+- **Crash Reporting & Monitoring:** Sentry or Firebase Crashlytics for real-time crash reporting, error logs, and network telemetry.
+- **Releases & CI/CD:** EAS Build for store submission and EAS Update for instant Over-The-Air bug fixes.
+
+---
+
+## What I Would Do Differently With More Time
+
+- **Offline Caching:** SQLite or WatermelonDB for true offline-first persistence and failure fallback.
+- **Search & Rich Filters:** Instant client-side search bar and multi-faceted filtering by department and date range.
+- **Modular & Scalable Architecture:** Integrate a dedicated state/caching layer (e.g. TanStack Query) to scale data management cleanly as features grow.
