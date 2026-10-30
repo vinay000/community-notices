@@ -6,7 +6,8 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
-  View,
+  Switch,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,13 +17,19 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useNoticeList } from '@/hooks/use-notice-list';
 import { useTheme } from '@/hooks/use-theme';
+import { isMockFailuresEnabled, setMockFailuresEnabled } from '@/services/api';
 import { theme } from '@/theme';
-import { Notice as NoticeType, NoticeCategory } from '@/types/notice';
+import { NoticeCategory, Notice as NoticeType } from '@/types/notice';
 
 export default function HomeScreen() {
   const colors = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<NoticeCategory | undefined>(undefined);
+  const [mockFailures, setMockFailures] = useState(isMockFailuresEnabled);
 
+  const handleToggleMockFailures = (value: boolean) => {
+    setMockFailures(value);
+    setMockFailuresEnabled(value);
+  };
 
   const {
     notices,
@@ -36,6 +43,7 @@ export default function HomeScreen() {
     refetch,
     loadMore,
     markAsRead,
+    unreadCount
   } = useNoticeList({ category: selectedCategory });
 
 
@@ -50,12 +58,31 @@ export default function HomeScreen() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.titleContainer}>
-        <ThemedText type="subheading">Notices</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          Community announcements and updates
-        </ThemedText>
+      <View style={styles.titleRow}>
+        <View style={styles.titleContainer}>
+          <ThemedText type="subheading">Notices</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Community announcements and updates
+          </ThemedText>
+        </View>
+
+        <View style={styles.switchContainer}>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.switchLabel}>
+            {mockFailures ? 'Failures ON' : 'Failures OFF'}
+          </ThemedText>
+          <Switch
+            value={mockFailures}
+            onValueChange={handleToggleMockFailures}
+            trackColor={{ false: colors.backgroundElement, true: colors.primary }}
+            thumbColor={colors.background}
+          />
+        </View>
       </View>
+
+
+
+
+      <ThemedText>{unreadCount()}</ThemedText>
 
       <CategoryFilter
         selected={selectedCategory}
@@ -153,7 +180,7 @@ export default function HomeScreen() {
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}
           onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
+          // onEndReachedThreshold={0.5}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -182,8 +209,21 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.sm,
     gap: theme.spacing.sm,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   titleContainer: {
     gap: 2,
+    flex: 1,
+  },
+  switchContainer: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  switchLabel: {
+    fontSize: theme.typography.sizes.xs,
   },
   listContent: {
     paddingBottom: theme.spacing.xl,

@@ -4,7 +4,7 @@ import { simulateNetworkCall } from './mock-api-layer';
 
 export const DEFAULT_PAGE_LIMIT = 10;
 
-const notices: Notice[] = (rawNoticesData as { notices: Notice[] }).notices;
+export const notices: Notice[] = (rawNoticesData as { notices: Notice[] }).notices;
 
 export async function fetchNotices(params?: GetNoticesParams): Promise<PaginatedNotices> {
   return simulateNetworkCall(() => {

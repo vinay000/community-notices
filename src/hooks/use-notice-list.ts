@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import rawNoticesData from '@/assets/data/notices.json';
 import { fetchNotices } from '@/services/api';
 import { ApiError, GetNoticesParams, Notice } from '@/types/notice';
 import { getStoredReadIds, storeReadId } from '@/utils/storage';
@@ -144,6 +145,16 @@ export function useNoticeList(params?: GetNoticesParams) {
     void storeReadId(id);
   }, []);
 
+
+  const unreadCount = async () => {
+    const [readIds] = await Promise.all([
+      getStoredReadIds(),
+    ]);
+    const notices = rawNoticesData.notices;
+
+    return notices.length - readIds.length
+  }
+
   const isEmpty = !isLoading && !error && notices.length === 0;
 
   return {
@@ -159,5 +170,6 @@ export function useNoticeList(params?: GetNoticesParams) {
     refetch,
     loadMore,
     markAsRead,
+    unreadCount
   };
 }
